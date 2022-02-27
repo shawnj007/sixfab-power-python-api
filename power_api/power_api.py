@@ -240,7 +240,41 @@ class SixfabPower:
         temp = temp.replace("temp=", "")
         return float(temp[:-3])
 
-    
+    def send_system_temp(self, timeout=10):
+        """
+        Function for sending raspberry pi core temperature to mcu
+        
+        Parameters
+        -----------
+        timeout : int (optional)
+            timeout while receiving the response (default is RESPONSE_DELAY)
+
+        Returns
+        ------- 
+        result : int
+            "1" for SUCCESS, "2" for FAIL
+        """
+        
+        temp = self.get_system_temp()
+        tempInt = int(temp * 100)
+        
+        value = bytearray()
+        value.append(int(tempInt))
+
+        raw = retry_set_command(
+            command.PROTOCOL_COMMAND_GET_SYSTEM_TEMP,
+            COMMAND_SIZE_FOR_UINT8,
+            value,
+            1,
+            timeout
+        )
+        
+        if raw != None:
+            result = raw[PROTOCOL_HEADER_SIZE]
+            return result
+        else:
+            return None
+        
     def get_system_voltage(self, timeout=RESPONSE_DELAY):
         """
         Function for getting system voltage
@@ -690,7 +724,68 @@ class SixfabPower:
         else:
             return None
 
+    def set_fan_automation(self, slow_threshold, fast_threshold=100, timeout=RESPONSE_DELAY):
+        """
+        Function for setting fan automation
+        ** NOTE: For this setting to work, periodic call to send_sys_temp must be made.
+        
+        Parameters
+        -----------
+        slow_threshold : int
+            temperature threshold to decide fan working status [min : 0 , max : 100]
+        timeout : int (optional)
+            timeout while receiving the response (default is RESPONSE_DELAY)
 
+        Returns
+        ------- 
+        result : int
+            "1" for SET OK, "2" for SET FAILED 
+        """
+
+        value = bytearray()
+        value.append(int(slow_threshold))
+        value.append(int(fast_threshold))
+
+        raw = retry_set_command(
+            command.PROTOCOL_COMMAND_SET_FAN_AUTOMATION,
+            COMMAND_SIZE_FOR_UINT8,
+            value,
+            2,
+            timeout
+        )
+        if raw != None:
+            result = raw[PROTOCOL_HEADER_SIZE]
+            return result
+        else:
+            return None
+
+    def get_fan_automation(self, timeout=RESPONSE_DELAY):
+        """
+        Function for getting fan automation
+        
+        Parameters
+        -----------
+        timeout : int (optional)
+            timeout while receiving the response (default is RESPONSE_DELAY)
+        Returns
+        ------- 
+        automation : byteArray(2)
+            [slow_threshold, fast_threshold] [Celsius]
+        """
+        
+        raw = retry_command(
+            command.PROTOCOL_COMMAND_GET_FAN_AUTOMATION,
+            COMMAND_SIZE_FOR_UINT8,
+            timeout
+        )
+
+        if raw != None:
+            for i in range(2):
+                fanAutomation.append(raw[PROTOCOL_HEADER_SIZE + i])
+            return fanAutomation
+        else:
+            return None
+        
     def set_battery_max_charge_level(self, level, timeout=RESPONSE_DELAY):
         """
         Function for setting battery max charge level
@@ -1427,6 +1522,69 @@ class SixfabPower:
         else:
             return 1
 
+    def set_edm_status(self, status, timeout=RESPONSE_DELAY):
+        """
+        Function for setting easy deployment mode status. The EDM mode provides ulta power saving 
+        by disabling all power output on the HAT including end device (like Raspberry Pi). It can be used
+        transport and easy deployment purpose. It disables automatically when the power source is plugged to HAT.
+        ** NOTE: This does not bring the system down 'gracefully', and that must be done before EDM is started.
+        ** NOTE: See https://community.sixfab.com/t/solved-how-to-make-easy-deployment-mode-enable-just-before-shutdown/1477
+                for further details.
+        
+        Parameters
+        -----------
+        status : int
+            "1" for ENABLED, "2" for DISABLED
+        timeout : int (optional)
+            timeout while receiving the response (default is RESPONSE_DELAY)
+
+        Returns
+        ------- 
+        result : int
+            "1" for SET OK, "2" for SET FAILED
+        """
+        raw = retry_set_command(
+            command.PROTOCOL_COMMAND_SET_EASY_DEPLOYMENT_MODE,
+            COMMAND_SIZE_FOR_UINT8,
+            status,
+            1,
+            timeout
+        )
+        
+        if raw != None:
+            status = raw[PROTOCOL_HEADER_SIZE]
+            return status
+        else:
+            return None
+        
+    def get_edm_status(self, timeout=RESPONSE_DELAY):
+        """
+        Function for getting easy deployment mode status. The EDM mode provides ulta power saving 
+        by disabling all power output on the HAT including end device (like Raspberry Pi). It can be used
+        transport and easy deployment purpose. It disables automatically when the power source is plugged to HAT.
+        
+        Parameters
+        -----------
+        timeout : int (optional)
+            timeout while receiving the response (default is RESPONSE_DELAY)
+
+        Returns
+        ------- 
+        status : int
+            "1" for EDM ENABLED, "2" for EDM DISABLED 
+        """
+        raw = retry_command(
+            command.PROTOCOL_COMMAND_GET_EASY_DEPLOYMENT_MODE,
+            COMMAND_SIZE_FOR_UINT8,
+            timeout
+        )
+
+        if raw != None:
+            status = raw[PROTOCOL_HEADER_SIZE]
+            return status
+        else:
+            return None
+        
     def set_fan_mode(self, mode, timeout=RESPONSE_DELAY):
         """
         Function for setting fan mode
@@ -1579,6 +1737,13 @@ class SixfabPower:
     def set_power_outage_params(self, sleep_time, run_time, timeout=RESPONSE_DELAY):
         """
         Function for setting params on power outage
+        
+        When there is a power outage, ups will remain on for the run_time interval
+        then shut down, then it will sleep for the sleep_time interval, and when the
+        time is up, the device will turn on. This cycle breaks when power is plugged in.
+        
+        Setting sleep_time parameter to the maximum(1439 min) will prevent UPS from
+        ever waking the Pi using this functionality.
         
         Parameters
         -----------
