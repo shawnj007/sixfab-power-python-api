@@ -243,6 +243,7 @@ class SixfabPower:
     def send_system_temp(self, timeout=10):
         """
         Function for sending raspberry pi core temperature to mcu
+        ** NOTE: This must be called periodically for fan automation to function
         
         Parameters
         -----------
@@ -727,7 +728,7 @@ class SixfabPower:
     def set_fan_automation(self, slow_threshold, fast_threshold=100, timeout=RESPONSE_DELAY):
         """
         Function for setting fan automation
-        ** NOTE: For this setting to work, periodic call to send_sys_temp must be made.
+        ** NOTE: For this setting to work, periodic call to send_system_temp() must be made.
         
         Parameters
         -----------
@@ -1592,7 +1593,7 @@ class SixfabPower:
         Parameters
         -----------
         status : int
-            "1" for FAN ON MODE, "2" for FAN OFF MODE 
+            "1" for FAN ON MODE, "2" for FAN OFF MODE, "3" for FAN AUTO MODE
         timeout : int (optional)
             timeout while receiving the response (default is RESPONSE_DELAY)
 
