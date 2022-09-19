@@ -1596,11 +1596,7 @@ class SixfabPower:
         Parameters
         -----------
         status : int
-<<<<<<< HEAD
             "1" for FAN ON MODE, "2" for FAN OFF MODE, "3" for FAN AUTO MODE 
-=======
-            "1" for FAN ON MODE, "2" for FAN OFF MODE, "3" for FAN AUTO MODE
->>>>>>> e21b8c76e82d1fff7407d2d4163cd627a0737a13
         timeout : int (optional)
             timeout while receiving the response (default is RESPONSE_DELAY)
 
