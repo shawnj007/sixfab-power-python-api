@@ -259,18 +259,20 @@ class SixfabPower:
         tempInt = int(temp * 100)
         
         value = bytearray()
-        value.append(int(tempInt))
+        #value.append(int(tempInt))
 
+        #print(value[0])
         raw = retry_set_command(
             command.PROTOCOL_COMMAND_GET_SYSTEM_TEMP,
             COMMAND_SIZE_FOR_UINT8,
-            value,
-            1,
+            int(tempInt),
+            4,
             timeout
         )
         
         if raw != None:
             result = raw[PROTOCOL_HEADER_SIZE]
+            print(result)
             return result
         else:
             return None
@@ -775,11 +777,12 @@ class SixfabPower:
         
         raw = retry_command(
             command.PROTOCOL_COMMAND_GET_FAN_AUTOMATION,
-            COMMAND_SIZE_FOR_UINT8,
+            COMMAND_SIZE_FOR_INT16,
             timeout
         )
 
         if raw != None:
+            fanAutomation = bytearray()
             for i in range(2):
                 fanAutomation.append(raw[PROTOCOL_HEADER_SIZE + i])
             return fanAutomation
@@ -1592,7 +1595,7 @@ class SixfabPower:
         Parameters
         -----------
         status : int
-            "1" for FAN ON MODE, "2" for FAN OFF MODE 
+            "1" for FAN ON MODE, "2" for FAN OFF MODE, "3" for FAN AUTO MODE 
         timeout : int (optional)
             timeout while receiving the response (default is RESPONSE_DELAY)
 
