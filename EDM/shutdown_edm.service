@@ -1,6 +1,5 @@
 [Unit]
 Description=script to put UPS HAT in Easy Deployment Mode
-Before=reboot.target
 
 [Service]
 User=pi
@@ -12,4 +11,4 @@ ExecStop=/bin/sh -c '/usr/bin/python3 /usr/local/sbin/enter_edm.py'
 TimeoutStopSec=10
 
 [Install]
-WantedBy=reboot.target
+WantedBy=runlevel1.target runlevel2.target
